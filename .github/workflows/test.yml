@@ -27,7 +27,7 @@ on:
 env:
   TZ: Asia/Shanghai
   branche: 19.07
-
+  SSH_ACTIONS: true
 
 
 jobs:
@@ -44,11 +44,11 @@ jobs:
       fail-fast: false
       matrix:
         target: 
-          - ac2100
-          - r3
-          - r3g
-          - rm2100
-          - packages
+#          - ac2100
+#          - r3
+#          - r3g
+#          - rm2100
+          - test
 #          - ac2100-dev
 #          - r3g-dev
 #          - rm2100-dev
@@ -57,102 +57,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@main
       
-    - name: Clone branche code
-      working-directory: /home/runner/work/OpenWrtForMiWiFi/
-      run: |
-        rm -rf OpenWrtForMiWiFi
-        git clone -b 19.07 https://github.com/0xc0000142/OpenWrtForMiWiFi.git OpenWrtForMiWiFi
-    - name: Load Settings.ini
-      run: |
-
-        SSH_ACTIONS=true
-
-    - name: Initialization environment
-      env:
-        DEBIAN_FRONTEND: noninteractive
-      run: |
-        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
-        sudo -E apt-get -qq update
-        sudo -E apt-get -qq install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 python2.7 unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget swig rsync
-        sudo -E apt-get -qq autoremove --purge
-        sudo -E apt-get -qq clean
-        sudo timedatectl set-timezone "$TZ"
-        sudo mkdir -p /workdir
-        sudo chown $USER:$GROUPS /workdir
-    - name: Clone source code
-      working-directory: /workdir
-      run: |
-        df -hT $PWD
-        git clone --depth 1 $REPO_URL -b $REPO_BRANCH openwrt
-        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
-    - name: Load custom feeds
-      run: |
-        [ -e common-all/$FEEDS_CONF ] && cp common-all/$FEEDS_CONF openwrt/feeds.conf.default
-        [ -e $COMMON_DIR/$FEEDS_CONF ] && cp $COMMON_DIR/$FEEDS_CONF openwrt/feeds.conf.default
-        [ -e config/${{matrix.target}}/$FEEDS_CONF ] && cp config/${{matrix.target}}/$FEEDS_CONF openwrt/feeds.conf.default
-        if [ -f "common-all/$DIY_P1_SH" ]; then
-        (
-          chmod +x common-all/$DIY_P1_SH
-          cd openwrt
-          $GITHUB_WORKSPACE/common-all/$DIY_P1_SH
-          cd -
-        )
-        fi
-        if [ -f "$COMMON_DIR/$DIY_P1_SH" ]; then
-        (
-          chmod +x $COMMON_DIR/$DIY_P1_SH
-          cd openwrt
-          $GITHUB_WORKSPACE/$COMMON_DIR/$DIY_P1_SH
-          cd -
-        )
-        fi
-        if [ -f "config/${{matrix.target}}/$DIY_P1_SH" ]; then
-        (
-          chmod +x config/${{matrix.target}}/$DIY_P1_SH
-          cd openwrt
-          $GITHUB_WORKSPACE/config/${{matrix.target}}/$DIY_P1_SH
-          cd -
-        )
-        fi
-    - name: Update feeds
-      run: cd openwrt && ./scripts/feeds update -a
-
-    - name: Install feeds
-      run: cd openwrt && ./scripts/feeds install -a
-
-    - name: Load custom configuration
-      run: |
-        [ -e common-all/files ] && cp -rf common-all/files openwrt/files
-        [ -e common-all/diy ] && cp -Rf common-all/diy/* openwrt
-        [ -e $COMMON_DIR/files ] && cp -rf $COMMON_DIR/files openwrt/files
-        [ -e $COMMON_DIR/diy ] && cp -Rf $COMMON_DIR/diy/* openwrt
-        [ -e config/${{matrix.target}}/files ] && cp -rf config/${{matrix.target}}/files openwrt/files
-        [ -e config/${{matrix.target}}/diy ] && cp -rf config/${{matrix.target}}/diy/* openwrt
-        [ -e config/${{matrix.target}}/.config ] && cp config/${{matrix.target}}/.config openwrt/.config
-        if [ -f "common-all/$DIY_P2_SH" ]; then
-        (
-          chmod +x common-all/$DIY_P2_SH
-          cd openwrt
-          $GITHUB_WORKSPACE/common-all/$DIY_P2_SH
-          cd -
-        )
-        fi
-        if [ -f "$COMMON_DIR/$DIY_P2_SH" ]; then
-        (
-          chmod +x $COMMON_DIR/$DIY_P2_SH
-          cd openwrt
-          $GITHUB_WORKSPACE/$COMMON_DIR/$DIY_P2_SH
-          cd -
-        )
-        fi
-        if [ -f "config/${{matrix.target}}/$DIY_P2_SH" ]; then
-        (
-          chmod +x config/${{matrix.target}}/$DIY_P2_SH
-          cd openwrt
-          $GITHUB_WORKSPACE/config/${{matrix.target}}/$DIY_P2_SH
-          cd -
-        )
-        fi
     - name: SSH connection to Actions
       uses: P3TERX/debugger-action@main
       if: env.SSH_ACTIONS == 'true' || contains(github.event.action, 'ssh')
